@@ -24,16 +24,14 @@ class Board
 			end
 			arr
 		end
-		
+
 		def find_square(x, y)
 			@squares.find { |square| [square.x, square.y] == [x, y] }
 		end
-
 end
 
 class Square
-	attr_reader :x, :y
-	attr_accessor :piece
+	attr_accessor :x, :y, :piece
 	def initialize(x, y, board)
 		@x = x
 		@y = y
@@ -42,7 +40,7 @@ class Square
 	end
 
 	def token
-		@piece.token
+		@piece.token || '_'
 	end
 
 	def reachable?(piece_position, move)
@@ -60,10 +58,12 @@ class Square
 	end
 
 	def take(attacker)
-		@board.taken_pieces << @piece
+		if occupied?
+			@board.taken_pieces << @piece
+		end
+
 		@piece = attacker
 	end
-
 end
 
 class Piece
@@ -72,7 +72,7 @@ class Piece
 		@colour = colour
 	end
 
-	def move(square)
+	def move(target)
 		square.take(self)
 	end
 end
@@ -85,13 +85,10 @@ class Pawn < Piece
 		@token = colour == 'black' ? "\u2659" : "\u265f"
 	end
 
-	def move(square)
-		if valid_move?(square)
-			@moved = true
-			super
-		end
+	def move(target)
+		@moved = true
+		super
 	end
-
 end
 
 class Rook < Piece
@@ -100,18 +97,13 @@ class Rook < Piece
 		@moveset = [[0, 1], [1, 0], [0, -1], [-1, 0]]
 		@token = colour == 'black' ? "\u2659" : "\u265f"
 	end
-
-	def move(start, target)
-		if valid_move?(start, target)
-			super(target)
-		end
-	end
 	
-	def valid_move?(start, target)
+	def valid_move?(target)
 		for move in @moveset
-			temp = start.get_relative(*move)
-			until temp.nil? || temp.occupied? do
-				return true if temp == target
+			temp = target.get_relative(*move)
+			until temp.nil?
+				return true if temp.piece == self
+				return false if temp.occupied?
 				temp = temp.get_relative(*move)
 			end
 		end
@@ -134,15 +126,15 @@ class Knight < Piece
 		@token = colour == 'black' ? "\u2659" : "\u265f"
 	end
 	
-	def valid_move?(square)
-		moveset.some { |move| @current_square.get_relative(*move) == square }
+	def valid_move?(start, target)
+		moveset.some { |move| start.get_relative(*move) == square }
 	end
 end
 
 board = Board.new
 
-board.squares[0].piece = Rook.new('black')
+rook = Rook.new('black')
 
-board.squares[0].piece.move(board.squares[0], board.squares[1])
+board.squares[0].piece = rook
 
-puts board.squares[1].piece
+puts rook.valid_move?(board.squares[7])
