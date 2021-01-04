@@ -26,8 +26,8 @@ class Game
 			piece = choose_piece
 			puts 'Choose target square'
       target = choose_square
-			move_piece(piece, target)
-			switch_players
+			attempt_move(piece, target)
+			puts @board.board_in_check?(@current_player.colour)
     end
 	end
 	
@@ -50,6 +50,15 @@ class Game
 		square
 	end
 	
+  def attempt_move(piece, target)
+    if piece.can_move_to?(target)
+			piece.move_to(target)
+			switch_players
+    else
+      puts 'Invalid move'
+    end
+	end
+	
 	def switch_players
 		if @current_player.equal?(@players[:white])
 			@current_player = @players[:black]
@@ -57,14 +66,6 @@ class Game
 			@current_player = @players[:white]
 		end
 	end
-
-  def move_piece(piece, target)
-    if piece.can_move_to?(target)
-      piece.move_to(target)
-    else
-      puts 'Invalid move'
-    end
-  end
 end
 
 class Player
@@ -131,7 +132,16 @@ class Board
 
   def remove_piece(piece)
     @taken_pieces << piece
-  end
+	end
+	
+	def board_in_check?(player_colour)
+		@squares.each do |square|
+			if square.occupied? && !square.friendly?(player_colour)
+				return true if square.piece.valid_moves.any? { |target| target.friendly?(player_colour) && target.piece&.class == King  }
+			end
+		end
+		false
+	end
 end
 
 class Square
@@ -181,32 +191,32 @@ class Piece
   end
 
   def can_move_to?(target)
-    return false if target.friendly?(@colour)
+    valid_moves.include?(target)
+	end
 
-    if @restricted_move
-      validate_restricted_move(target)
-    else
-      validate_unrestricted_move(target)
-    end
-  end
-
-  private
-
-  def validate_unrestricted_move(target)
+	private
+	
+	def valid_moves_unrestricted
+		moves = []
     @moveset.each do |move|
       temp = @current_square.get_relative(*move)
-      until temp.nil?
-        return true if temp.equal?(target)
+      until temp.nil? || temp.friendly?(@colour)
+        moves << temp
         break if temp.occupied?
         temp = temp.get_relative(*move)
-      end
-    end
-    false
-  end
+			end
+    end	
+		moves
+	end
 
-  def validate_restricted_move(target)
-    @moveset.any? { |move| @current_square.get_relative(*move) == target }
-  end
+	def valid_moves_restricted
+		moves = []
+		@moveset.each do |move| 
+			temp = @current_square.get_relative(*move) 
+			moves << temp if !temp.nil? && !temp.friendly?(@colour)
+		end
+		moves
+	end
 end
 
 class King < Piece
@@ -215,11 +225,11 @@ class King < Piece
     @moveset = @diagonal_moves + @straight_moves
     @restricted_move = true
     @token = colour == 'black' ? "|\u265A" : "|\u2654"
-  end
-
-  def in_check?
-    # todo
-  end
+	end
+	
+	def valid_moves
+		valid_moves_restricted
+	end
 end
 
 class Queen < Piece
@@ -228,7 +238,11 @@ class Queen < Piece
     @moveset = @diagonal_moves + @straight_moves
     @restricted_move = false
     @token = colour == 'black' ? "|\u265B" : "|\u2655"
-  end
+	end
+	
+	def valid_moves
+		valid_moves_unrestricted
+	end
 end
 
 class Rook < Piece
@@ -237,7 +251,11 @@ class Rook < Piece
     @moveset = @straight_moves
     @restricted_move = false
     @token = colour == 'black' ? "|\u265C" : "|\u2656"
-  end
+	end
+	
+	def valid_moves
+		valid_moves_unrestricted
+	end
 end
 
 class Bishop < Piece
@@ -246,7 +264,11 @@ class Bishop < Piece
     @moveset = @diagonal_moves
     @restricted_move = false
     @token = colour == 'black' ? "|\u265D" : "|\u2657"
-  end
+	end
+	
+	def valid_moves
+		valid_moves_unrestricted
+	end
 end
 
 class Knight < Piece
@@ -255,17 +277,25 @@ class Knight < Piece
     @moveset = [[2, -1], [2, 1], [-2, -1], [-2, 1], [1, 2], [1, -2], [-1, -2], [-1, 2]]
     @restricted_move = true
     @token = colour == 'black' ? "|\u265E" : "|\u2658"
-  end
+	end
+	
+	def valid_moves
+		valid_moves_restricted
+	end
 end
 
 class Pawn < Piece
   def initialize(colour, square)
     super
     @moveset = colour == 'black' ? [[0, -1], [0, -2]] : [[0, 1], [0, 2]]
-    @take_moves = colour == 'black' ? [[-1, -1], [+1, -1]] : [[1, 1], [-1, 1]]
+    @take_moves = colour == 'black' ? [[-1, -1], [1, -1]] : [[1, 1], [-1, 1]]
     @restricted_move = true
     @token = colour == 'black' ? "|\u265F" : "|\u2659"
-  end
+	end
+	
+	def valid_moves
+		valid_moves_restricted
+	end
 
   def can_move_to?(target)
     if target.occupied? && !target.friendly?(@colour)
@@ -273,8 +303,8 @@ class Pawn < Piece
     else
       super
     end
-  end
-
+	end
+	
   def move(target)
     @moveset = [@moveset[0]]
     super
