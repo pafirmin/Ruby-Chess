@@ -2,18 +2,51 @@ class Game
   def initialize
 		@board = Board.new
 		@players = []
+		@current_player = nil
   end
 
 	def new_game
 		@board.deploy_pieces
 		@board.print_board
+		get_players
+		turn
 	end
 	
 	def get_players
-		player_one_name = gets.chomp
-		players << Player.new(player_one_name, 'white')
-		player_two_name = gets.chomp
-		players << Player.new(player_two_name, 'black')
+		puts "White's name"
+		@players << Player.new(gets.chomp, 'white')
+		puts "Black's name"
+		@players << Player.new(gets.chomp, 'black')
+	end
+
+	def turn
+		loop do
+	  	@board.print_board
+		  puts 'Choose piece to move'
+		  piece = get_input.piece
+		  puts 'Choose target square'
+		  target = get_input
+		  move_piece(piece, target)
+		end
+	end
+
+	def get_input
+		choice = gets.chomp
+		square = @board.find_square(choice[0], choice[1])
+		if square.nil?
+			puts 'Invalid choice'
+			get_input
+		end
+		square
+	end
+
+	def move_piece(piece, target)
+		if piece.can_move_to?(target)
+			piece.move(target)
+		else
+			puts 'Invalid move'
+			turn
+		end
 	end
 end
 
@@ -48,8 +81,8 @@ class Board
 		black_back_line, white_back_line = grid[0], grid[7]
 
 		black_pawn_row.each { |square| square.piece = Pawn.new('black', square) }
-		white_pawn_row.each { |square| square.piece = Pawn.new('white', square) }
 		black_back_line.each { |square| square.piece = get_back_line_piece('black', square) }
+		white_pawn_row.each { |square| square.piece = Pawn.new('white', square) }
 		white_back_line.each { |square| square.piece = get_back_line_piece('white', square) }
 	end
 
@@ -69,7 +102,7 @@ class Board
 	end
 
 	def find_square(x, y)
-    @squares.find { |square| [square.x, square.y] == [x, y] }
+    @squares.find { |square| [square.x, square.y] == [x.to_i, y.to_i] }
 	end
 	
 	def print_board
@@ -80,15 +113,19 @@ class Board
 	def to_grid
 		@squares.each_slice(8).to_a
 	end
+
+	def remove_piece(piece)
+		@taken_pieces << piece
+	end
 end
 
 class Square
   attr_accessor :x, :y, :piece
-  def initialize(x, y, board, piece = nil)
+  def initialize(x, y, board)
     @x = x
     @y = y
     @board = board
-    @piece = piece
+    @piece = nil
   end
 
   def to_s
@@ -97,15 +134,18 @@ class Square
 
   def occupied?
     @piece != nil
-  end
+	end
+	
+	def friendly?(colour)
+		@piece&.colour == colour
+	end
 
   def get_relative(move_x, move_y)
     @board.find_square(@x + move_x, @y + move_y)
   end
 
   def take(attacker)
-    @board.taken_pieces << @piece if occupied?
-
+    @board.remove_piece(piece) if occupied?
     @piece = attacker
   end
 end
@@ -119,17 +159,18 @@ class Piece
 		@current_square = square
   end
 
-  def move(target)
+	def move(target)
 		target.take(self)
 		@current_square.piece = nil
 		@current_square = target
   end
 
-  def valid_move?(target)
+	def can_move_to?(target)
+		return false if target.friendly?(@colour)
 		if @restricted_move
-			validate_unrestricted_move
+			validate_restricted_move(target)
 		else
-			validate_unrestricted_move
+			validate_unrestricted_move(target)
 		end
   end
 
@@ -137,10 +178,10 @@ class Piece
 
   def validate_unrestricted_move(target)
     @moveset.each do |move|
-      temp = target.get_relative(*move)
+      temp = @current_square.get_relative(*move)
       until temp.nil?
-        return true if temp.piece == self
-        return false if temp.occupied?
+        return true if temp == target
+        break if temp.occupied?
         temp = temp.get_relative(*move)
       end
     end
@@ -148,7 +189,7 @@ class Piece
   end
 
   def validate_restricted_move(target)
-    moveset.any? { |move| target.get_relative(*move).piece == self }
+    @moveset.any? { |move| @current_square.get_relative(*move) == target }
   end
 end
 
@@ -161,9 +202,7 @@ class King < Piece
 	end
 
 	def in_check?
-		@@diagonal_moves.each do |move|
-
-		end
+		#todo
 	end
 end
 
@@ -174,29 +213,6 @@ class Queen < Piece
 		@restricted_move = false
 		@token = colour == 'black' ? "|\u265B" : "|\u2655"
 	end
-end
-
-class Pawn < Piece
-  def initialize(colour, square)
-    super
-    @moveset = colour == 'black' ? [[0, -1], [0, -2]] : [[0, 1], [0, 2]]
-    @take_moves = colour == 'black' ? [[-1, -1], [+1, -1]] : [[1, 1], [-1, 1]]
-    @restricted_move = true
-    @token = colour == 'black' ? "|\u265F" : "|\u2659"
-	end
-	
-	def valid_move?(target)
-		if target.occupied? && target.piece.colour != @colour
-			take_moves.any? { |move| @current_square.get_relative(*move).piece == target }
-		else
-			super
-		end
-	end
-
-  def move(target)
-    @moveset = [@moveset[0]]
-    super
-  end
 end
 
 class Rook < Piece
@@ -225,6 +241,31 @@ class Knight < Piece
     @token = colour == 'black' ? "|\u265E" : "|\u2658"
   end
 end
+
+
+class Pawn < Piece
+  def initialize(colour, square)
+    super
+    @moveset = colour == 'black' ? [[0, 1], [0, 2]] : [[0, -1], [0, -2]]
+    @take_moves = colour == 'black' ? [[1, 1], [-1, 1]] : [[-1, -1], [+1, -1]]
+    @restricted_move = true
+    @token = colour == 'black' ? "|\u265F" : "|\u2659"
+	end
+	
+	def can_move_to?(target)
+		if target.occupied? && !target.friendly?(@colour)
+			@take_moves.any? { |move| @current_square.get_relative(*move) == target }
+		else
+			super
+		end
+	end
+
+  def move(target)
+    @moveset = [@moveset[0]]
+    super
+  end
+end
+
 
 game = Game.new
 
