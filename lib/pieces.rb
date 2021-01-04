@@ -20,14 +20,21 @@ class Game
   end
 
   def turn_loop
-    loop do
+		loop do
+			puts "#{@current_player}'s turn"
+			if @board.board_in_check?(@current_player.colour)
+				if @board.check_mate?(@current_player.colour)
+					puts 'CHECKMATE'
+				else 
+					puts 'CHECK'
+				end
+			end
 			@board.print_board
 			puts 'Choose piece to move'
 			piece = choose_piece
 			puts 'Choose target square'
       target = choose_square
 			attempt_move(piece, target)
-			puts @board.board_in_check?(@current_player.colour)
     end
 	end
 	
@@ -50,8 +57,11 @@ class Game
 		square
 	end
 	
-  def attempt_move(piece, target)
-    if piece.can_move_to?(target)
+	def attempt_move(piece, target)
+		if @board.move_would_result_in_check?(piece, target)
+			puts 'Cannot put yourself into check'
+			return
+	  elsif piece.can_move_to?(target)
 			piece.move_to(target)
 			switch_players
     else
@@ -73,7 +83,11 @@ class Player
   def initialize(name, colour)
     @name = name
     @colour = colour
-  end
+	end
+	
+	def to_s
+		@name.capitalize
+	end
 end
 
 class Board
@@ -122,8 +136,18 @@ class Board
   end
 
   def print_board
-    rows = @squares.map(&:to_s).each_slice(8).to_a
-    rows.each { |row| puts row.join('') }
+		rows = to_grid
+		print " "
+		[*('A'..'H')].each { |pos| print " #{pos}" }
+		print "\n"
+		rows.each_with_index do |row, i|
+			print [*(1..8)].reverse[i]
+			row.each { |square| print square }
+			print " #{[*(1..8)].reverse[i]}\n"
+		end
+		print " "
+		[*('A'..'H')].each { |pos| print " #{pos}" }
+		print "\n"
   end
 
   def to_grid
@@ -137,10 +161,35 @@ class Board
 	def board_in_check?(player_colour)
 		@squares.each do |square|
 			if square.occupied? && !square.friendly?(player_colour)
-				return true if square.piece.valid_moves.any? { |target| target.friendly?(player_colour) && target.piece&.class == King  }
+				return true if square.piece.valid_moves.any? do |target|
+					target.friendly?(player_colour) && target.piece&.class == King
+				end
 			end
 		end
 		false
+	end
+
+	def check_mate?(colour)
+		@squares.select { |square| square.friendly?(colour) }
+		  .all? do |square|
+				square.piece.valid_moves.all? do |target|
+					puts "#{square} #{target}"
+			  	move_would_result_in_check?(square.piece, target)
+	  		end
+	  	end
+	end
+
+	def move_would_result_in_check?(piece, target)
+		check = false
+		temp_store = target.piece
+		piece.current_square.piece = nil
+		target.piece = piece
+		if board_in_check?(piece.colour)
+			check = true
+		end
+		piece.current_square.piece = piece
+		target.piece = temp_store
+		check
 	end
 end
 
@@ -176,7 +225,7 @@ class Square
 end
 
 class Piece
-  attr_reader :token, :colour
+  attr_reader :token, :colour, :current_square
   def initialize(colour, square)
     @straight_moves = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     @diagonal_moves = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
@@ -191,7 +240,15 @@ class Piece
   end
 
   def can_move_to?(target)
-    valid_moves.include?(target)
+		valid_moves.include?(target)
+	end
+
+	def valid_moves
+		if @restricted_move
+			valid_moves_restricted
+		else
+			valid_moves_unrestricted
+		end
 	end
 
 	private
@@ -226,10 +283,6 @@ class King < Piece
     @restricted_move = true
     @token = colour == 'black' ? "|\u265A" : "|\u2654"
 	end
-	
-	def valid_moves
-		valid_moves_restricted
-	end
 end
 
 class Queen < Piece
@@ -252,10 +305,6 @@ class Rook < Piece
     @restricted_move = false
     @token = colour == 'black' ? "|\u265C" : "|\u2656"
 	end
-	
-	def valid_moves
-		valid_moves_unrestricted
-	end
 end
 
 class Bishop < Piece
@@ -265,10 +314,6 @@ class Bishop < Piece
     @restricted_move = false
     @token = colour == 'black' ? "|\u265D" : "|\u2657"
 	end
-	
-	def valid_moves
-		valid_moves_unrestricted
-	end
 end
 
 class Knight < Piece
@@ -277,10 +322,6 @@ class Knight < Piece
     @moveset = [[2, -1], [2, 1], [-2, -1], [-2, 1], [1, 2], [1, -2], [-1, -2], [-1, 2]]
     @restricted_move = true
     @token = colour == 'black' ? "|\u265E" : "|\u2658"
-	end
-	
-	def valid_moves
-		valid_moves_restricted
 	end
 end
 
@@ -292,17 +333,27 @@ class Pawn < Piece
     @restricted_move = true
     @token = colour == 'black' ? "|\u265F" : "|\u2659"
 	end
-	
-	def valid_moves
-		valid_moves_restricted
-	end
 
   def can_move_to?(target)
     if target.occupied? && !target.friendly?(@colour)
       @take_moves.any? { |move| @current_square.get_relative(*move) == target }
     else
-      super
+			@moveset.none? { |move| @current_square.get_relative(*move).occupied? }
+			super
     end
+	end
+
+	def valid_moves
+		moves = []
+		@moveset.each do |move| 
+			square = @current_square.get_relative(*move) 
+			moves << square if !square.occupied?
+		end
+		@take_moves.each do |move|
+			square = @current_square.get_relative(*move) 
+			moves << square if square&.occupied? && !square.friendly?(@colour)
+		end
+		moves
 	end
 	
   def move(target)
