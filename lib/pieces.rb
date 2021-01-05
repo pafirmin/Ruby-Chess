@@ -2,34 +2,31 @@ class Game
   def initialize
     @board = Board.new
     @players = {white: nil, black: nil}
-    @current_player = nil
+		@current_player = nil
+		@checkmate = false
   end
 
-  def new_game
+  def run
     @board.deploy_pieces
 		prompt_players
 		@current_player = @players[:white]
-    turn_loop
-  end
+		turn_loop
+		game_over
+	end
+	
+	private
 
   def prompt_players
     puts "White's name"
-    @players[:white] = Player.new(gets.chomp, 'white')
+    @players[:white] = Player.new(gets.chomp, :white)
     puts "Black's name"
-    @players[:black] = Player.new(gets.chomp, 'black')
+    @players[:black] = Player.new(gets.chomp, :black)
   end
 
   def turn_loop
-		loop do
+		until @checkmate do
 			puts "#{@current_player}'s turn"
-			if @board.board_in_check?(@current_player.colour)
-				if @board.check_mate?(@current_player.colour)
-					puts 'CHECKMATE'
-				else 
-					puts 'CHECK'
-				end
-			end
-			@board.print_board
+			puts @board.to_s
 			puts 'Choose piece to move'
 			piece = choose_piece
 			puts 'Choose target square'
@@ -37,33 +34,49 @@ class Game
 			attempt_move(piece, target)
     end
 	end
+
+	def assess_board_for_check
+		if @board.board_in_check?(@current_player.colour)
+			if @board.checkmate?(@current_player.colour)
+				puts 'CHECKMATE!'
+				@checkmate = true
+				switch_players
+			else 
+				puts 'CHECK!'
+			end
+		end
+	end
 	
 	def choose_piece
-		square = choose_square
-		if !square.friendly?(@current_player.colour)
+		loop do
+			square = choose_square
+			return square.piece if square.friendly?(@current_player.colour)
 			puts 'Please select a valid piece.'
-			choose_piece
 		end
-		square.piece
 	end
 
-  def choose_square
-    choice = gets.chomp
-		square = @board.find_square(choice[0], choice[1])
-		if square.nil? 
+	def choose_square
+		loop do 
+			choice = gets.chomp
+			square = @board.find_square(alpha_to_num(choice[0]), choice[1])
+			return square if square
 			puts 'Invalid choice'
-			choose_square
 		end
-		square
 	end
+
+	def alpha_to_num(letter)
+    letter.upcase.ord - 'A'.ord + 1
+  end
+
 	
 	def attempt_move(piece, target)
 		if @board.move_would_result_in_check?(piece, target)
-			puts 'Cannot put yourself into check'
+			puts 'Cannot put yourself in check'
 			return
 	  elsif piece.can_move_to?(target)
 			piece.move_to(target)
 			switch_players
+			assess_board_for_check
     else
       puts 'Invalid move'
     end
@@ -75,6 +88,12 @@ class Game
 		else
 			@current_player = @players[:white]
 		end
+	end
+
+	def game_over
+		@board.to_s
+		puts "#{@current_player} wins!"
+		exit
 	end
 end
 
@@ -110,32 +129,17 @@ class Board
 
   def deploy_pieces
     grid = to_grid
-    grid[1].each { |square| square.piece = Pawn.new('black', square) }
-    grid[0].each { |square| square.piece = get_back_line_piece('black', square) }
-    grid[6].each { |square| square.piece = Pawn.new('white', square) }
-    grid[7].each { |square| square.piece = get_back_line_piece('white', square) }
-  end
-
-  def get_back_line_piece(colour, square)
-    case square.x
-    when 1, 8
-      Rook.new(colour, square)
-    when 2, 7
-      Knight.new(colour, square)
-    when 3, 6
-      Bishop.new(colour, square)
-    when 4
-      Queen.new(colour, square)
-    else
-      King.new(colour, square)
-    end
+    grid[1].each { |square| square.piece = Pawn.new(:black, square) }
+    grid[0].each { |square| square.piece = get_back_line_piece(:black, square) }
+    grid[6].each { |square| square.piece = Pawn.new(:white, square) }
+    grid[7].each { |square| square.piece = get_back_line_piece(:white, square) }
   end
 
   def find_square(x, y)
     @squares.find { |square| [square.x, square.y] == [x.to_i, y.to_i] }
   end
 
-  def print_board
+  def to_s
 		rows = to_grid
 		print " "
 		[*('A'..'H')].each { |pos| print " #{pos}" }
@@ -150,17 +154,13 @@ class Board
 		print "\n"
   end
 
-  def to_grid
-    @squares.each_slice(8).to_a
-  end
-
   def remove_piece(piece)
     @taken_pieces << piece
 	end
 	
 	def board_in_check?(player_colour)
 		@squares.each do |square|
-			if square.occupied? && !square.friendly?(player_colour)
+			if square.hostile?(player_colour)
 				return true if square.piece.valid_moves.any? do |target|
 					target.friendly?(player_colour) && target.piece&.class == King
 				end
@@ -169,11 +169,10 @@ class Board
 		false
 	end
 
-	def check_mate?(colour)
+	def checkmate?(colour)
 		@squares.select { |square| square.friendly?(colour) }
 		  .all? do |square|
 				square.piece.valid_moves.all? do |target|
-					puts "#{square} #{target}"
 			  	move_would_result_in_check?(square.piece, target)
 	  		end
 	  	end
@@ -191,6 +190,27 @@ class Board
 		target.piece = temp_store
 		check
 	end
+
+	private
+
+  def get_back_line_piece(colour, square)
+    case square.x
+    when 1, 8
+      Rook.new(colour, square)
+    when 2, 7
+      Knight.new(colour, square)
+    when 3, 6
+      Bishop.new(colour, square)
+    when 4
+      Queen.new(colour, square)
+    else
+      King.new(colour, square)
+    end
+	end
+	
+  def to_grid
+    @squares.each_slice(8).to_a
+  end
 end
 
 class Square
@@ -212,7 +232,11 @@ class Square
 
   def friendly?(colour)
     @piece&.colour == colour
-  end
+	end
+	
+	def hostile?(colour)
+		occupied? && @piece.colour != colour
+	end
 
   def get_relative(move_x, move_y)
     @board.find_square(@x + move_x, @y + move_y)
@@ -281,7 +305,7 @@ class King < Piece
     super
     @moveset = @diagonal_moves + @straight_moves
     @restricted_move = true
-    @token = colour == 'black' ? "|\u265A" : "|\u2654"
+    @token = colour == :black ? "|\u265A" : "|\u2654"
 	end
 end
 
@@ -290,7 +314,7 @@ class Queen < Piece
     super
     @moveset = @diagonal_moves + @straight_moves
     @restricted_move = false
-    @token = colour == 'black' ? "|\u265B" : "|\u2655"
+    @token = colour == :black ? "|\u265B" : "|\u2655"
 	end
 	
 	def valid_moves
@@ -303,7 +327,7 @@ class Rook < Piece
     super
     @moveset = @straight_moves
     @restricted_move = false
-    @token = colour == 'black' ? "|\u265C" : "|\u2656"
+    @token = colour == :black ? "|\u265C" : "|\u2656"
 	end
 end
 
@@ -312,7 +336,7 @@ class Bishop < Piece
     super
     @moveset = @diagonal_moves
     @restricted_move = false
-    @token = colour == 'black' ? "|\u265D" : "|\u2657"
+    @token = colour == :black ? "|\u265D" : "|\u2657"
 	end
 end
 
@@ -321,26 +345,17 @@ class Knight < Piece
     super
     @moveset = [[2, -1], [2, 1], [-2, -1], [-2, 1], [1, 2], [1, -2], [-1, -2], [-1, 2]]
     @restricted_move = true
-    @token = colour == 'black' ? "|\u265E" : "|\u2658"
+    @token = colour == :black ? "|\u265E" : "|\u2658"
 	end
 end
 
 class Pawn < Piece
   def initialize(colour, square)
     super
-    @moveset = colour == 'black' ? [[0, -1], [0, -2]] : [[0, 1], [0, 2]]
-    @take_moves = colour == 'black' ? [[-1, -1], [1, -1]] : [[1, 1], [-1, 1]]
+    @moveset = colour == :black ? [[0, -1], [0, -2]] : [[0, 1], [0, 2]]
+    @take_moves = colour == :black ? [[-1, -1], [1, -1]] : [[1, 1], [-1, 1]]
     @restricted_move = true
-    @token = colour == 'black' ? "|\u265F" : "|\u2659"
-	end
-
-  def can_move_to?(target)
-    if target.occupied? && !target.friendly?(@colour)
-      @take_moves.any? { |move| @current_square.get_relative(*move) == target }
-    else
-			@moveset.none? { |move| @current_square.get_relative(*move).occupied? }
-			super
-    end
+    @token = colour == :black ? "|\u265F" : "|\u2659"
 	end
 
 	def valid_moves
@@ -351,7 +366,7 @@ class Pawn < Piece
 		end
 		@take_moves.each do |move|
 			square = @current_square.get_relative(*move) 
-			moves << square if square&.occupied? && !square.friendly?(@colour)
+			moves << square if square&.hostile?(@colour)
 		end
 		moves
 	end
@@ -364,4 +379,4 @@ end
 
 game = Game.new
 
-game.new_game
+game.run
