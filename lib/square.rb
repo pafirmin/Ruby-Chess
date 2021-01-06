@@ -29,16 +29,18 @@ class Square
   end
 
   def take(attacker)
-    @board.remove_piece(@piece) if occupied?
+    @board.remove_piece(self) if occupied?
     @piece = attacker
   end
 
   def take_en_passant(attacker)
     @piece = attacker
     if attacker.colour == :black
-      get_relative(0, 1).piece = nil
+      square = get_relative(0, 1)
+      @board.remove_piece(square)
     else
-      get_relative(0, -1).piece = nil
+      square = get_relative(0, -1)
+      @board.remove_piece(square)
     end
   end
 end

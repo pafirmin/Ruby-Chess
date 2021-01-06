@@ -12,8 +12,8 @@ class Piece
   end
 
   def move_to(target)
-    target.take(self)
     @current_square.piece = nil
+    target.take(self)
     @current_square = target
   end
 
@@ -45,7 +45,7 @@ class Piece
     moves = []
     @moveset.each do |move|
       square = @current_square.get_relative(*move)
-      moves << square unless square.nil? || square.friendly?(@colour)
+      moves << square if square&.hostile?(@colour)
     end
     moves
   end

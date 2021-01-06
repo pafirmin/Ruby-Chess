@@ -30,8 +30,9 @@ class Board
     @squares.find { |square| [square.x, square.y] == [x.to_i, y.to_i] }
   end
 
-  def remove_piece(piece)
-    @taken_pieces << piece
+  def remove_piece(square)
+    @taken_pieces << square.piece
+    square.piece = nil
   end
 
   def board_in_check?(player_colour)
