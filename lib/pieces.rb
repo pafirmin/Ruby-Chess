@@ -1,6 +1,20 @@
 # frozen_string_literal: true
+require 'yaml'
+
+module SaveManager
+	def save(game)
+		File.open('save.yml', 'w') { |file| file.write(game.to_yaml) }
+	end
+
+	def load
+		game = YAML.load(File.read('save.yml'))
+		game.turn_loop
+	end
+end
 
 class Game
+	include SaveManager
+
   def initialize
     @board = Board.new
     @players = { white: nil, black: nil }
@@ -14,18 +28,9 @@ class Game
     @current_player = @players[:white]
     turn_loop
     game_over
-  end
-
-  private
-
-  def prompt_players
-    puts "White's name"
-    @players[:white] = Player.new(gets.chomp, :white)
-    puts "Black's name"
-    @players[:black] = Player.new(gets.chomp, :black)
-  end
-
-  def turn_loop
+	end
+	
+	  def turn_loop
     until @checkmate
       clear_en_passant
       puts "#{@current_player}'s turn"
@@ -36,6 +41,15 @@ class Game
       target = choose_square
       attempt_move(piece, target)
     end
+  end
+
+  private
+
+  def prompt_players
+    puts "White's name"
+    @players[:white] = Player.new(gets.chomp, :white)
+    puts "Black's name"
+    @players[:black] = Player.new(gets.chomp, :black)
   end
 
   def assess_board_for_check
@@ -60,8 +74,12 @@ class Game
 
   def choose_square
     loop do
-      choice = gets.chomp
-      if choice.upcase!.start_with?('O-O')
+			choice = gets.chomp
+			if choice == 'save'
+				save(self)
+			elsif choice == 'load'
+				load
+      elsif choice.upcase!.start_with?('O-O')
         castle_move(choice)
         break
       else
@@ -143,7 +161,34 @@ class Player
   end
 end
 
+module Display
+  def to_s
+		rows = to_grid
+		print_taken_pieces(:white)
+    print_letter_row
+    rows.each_with_index do |row, i|
+      print [*(1..8)].reverse[i]
+      row.each { |square| print square }
+      print " #{[*(1..8)].reverse[i]}\n"
+    end
+		print_letter_row
+		print_taken_pieces(:black)
+	end
+
+  def print_letter_row
+    print ' '
+    [*('A'..'H')].each { |pos| print " #{pos}" }
+    print "\n"
+	end
+	
+	def print_taken_pieces(colour)
+		puts @taken_pieces.select { |piece| piece.colour == colour }.join
+	end
+end
+
 class Board
+	include Display
+
   attr_reader :squares, :kings
   attr_writer :taken_pieces
   def initialize
@@ -172,17 +217,6 @@ class Board
 
   def find_square(x, y)
     @squares.find { |square| [square.x, square.y] == [x.to_i, y.to_i] }
-  end
-
-  def to_s
-    rows = to_grid
-    print_letter_row
-    rows.each_with_index do |row, i|
-      print [*(1..8)].reverse[i]
-      row.each { |square| print square }
-      print " #{[*(1..8)].reverse[i]}\n"
-    end
-    print_letter_row
   end
 
   def remove_piece(piece)
@@ -248,11 +282,11 @@ class Board
     when 1, 8
       Rook.new(colour, square)
     when 2, 7
-      # Knight.new(colour, square)
+      Knight.new(colour, square)
     when 3, 6
-      # Bishop.new(colour, square)
+      Bishop.new(colour, square)
     when 4
-      # Queen.new(colour, square)
+      Queen.new(colour, square)
     else
       @kings[colour] = King.new(colour, square)
       @kings[colour]
@@ -261,12 +295,6 @@ class Board
 
   def to_grid
     @squares.each_slice(8).to_a
-  end
-
-  def print_letter_row
-    print ' '
-    [*('A'..'H')].each { |pos| print " #{pos}" }
-    print "\n"
   end
 end
 
@@ -322,7 +350,11 @@ class Piece
     @diagonal_moves = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
     @colour = colour
     @current_square = square
-  end
+	end
+	
+	def to_s
+		@token
+	end
 
   def move_to(target)
     target.take(self)
@@ -482,7 +514,7 @@ class Pawn < Piece
   private
 
   def promote!
-    puts 'Promotion achieved! Choose a piece to replace your pawn'
+    puts 'Promotion achieved! Choose a piece to replace your pawn: Q, N, R or B'
     choice = gets.chomp
     piece = get_promotion_piece(choice)
     @current_square.piece = piece
@@ -490,7 +522,7 @@ class Pawn < Piece
 
   def get_promotion_piece(choice)
     case choice.upcase[0]
-    when 'K'
+    when 'N'
       Knight.new(@colour, @current_square)
     when 'B'
       Bishop.new(@colour, @current_square)
@@ -501,14 +533,13 @@ class Pawn < Piece
     end
   end
 
-  def can_move_en_passant(square)
+	def can_move_en_passant(square)
+		return false unless square&.piece&.class == Pawn
     if @colour == :black
-      square&.get_relative(0, 1)&.piece&.is_en_passant_capturable
+      square.get_relative(0, 1).piece.is_en_passant_capturable
     else
-      square&.get_relative(0, -1)&.piece&.is_en_passant_capturable
+      square.get_relative(0, -1).piece.is_en_passant_capturable
     end
-  rescue StandardError
-    false
   end
 end
 
