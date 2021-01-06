@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Game
   def initialize
     @board = Board.new
@@ -7,8 +9,8 @@ class Game
   end
 
   def run
-    @board.deploy_pieces
     prompt_players
+    @board.deploy_pieces
     @current_player = @players[:white]
     turn_loop
     game_over
@@ -24,8 +26,8 @@ class Game
   end
 
   def turn_loop
-		until @checkmate
-			clear_en_passant
+    until @checkmate
+      clear_en_passant
       puts "#{@current_player}'s turn"
       puts @board.to_s
       puts 'Choose piece to move'
@@ -37,14 +39,13 @@ class Game
   end
 
   def assess_board_for_check
-    if @board.board_in_check?(@current_player.colour)
-      if @board.checkmate?(@current_player.colour)
-        puts 'CHECKMATE!'
-        @checkmate = true
-        switch_players
-      else
-        puts 'CHECK!'
-      end
+    return unless @board.board_in_check?(@current_player.colour)
+    if @board.checkmate?(@current_player.colour)
+      puts 'CHECKMATE!'
+			@checkmate = true
+		  switch_players
+    else
+      puts 'CHECK!'
     end
   end
 
@@ -60,11 +61,36 @@ class Game
   def choose_square
     loop do
       choice = gets.chomp
-      square = @board.find_square(alpha_to_num(choice[0]), choice[1])
-      return square if square
+      if choice.upcase!.start_with?('O-O')
+        castle_move(choice)
+        break
+      else
+        square = @board.find_square(alpha_to_num(choice[0]), choice[1])
+        return square if square
+      end
 
       puts 'Invalid choice'
     end
+  end
+
+  def castle_move(move)
+    king = @board.kings[@current_player.colour]
+    if move == 'O-O'
+      side = :kingside
+      rook = @board.find_square(8, king.current_square.y).piece
+    elsif move == 'O-O-O'
+      side = :queenside
+      rook = @board.find_square(1, king.current_square.y).piece
+    end
+    moves = king.castle_moves[side]
+		if @board.can_castle?(king, rook, moves)
+			@board.castle!(king, rook, side) 
+			switch_players
+			turn_loop
+		else
+			puts 'Cannot castle right now'
+			turn_loop
+		end
   end
 
   def alpha_to_num(letter)
@@ -90,13 +116,13 @@ class Game
                       else
                         @players[:white]
                       end
-	end
-	
-	def clear_en_passant
-		Pawn.all.each do |pawn| 
-			pawn.is_en_passant_capturable = false if pawn.colour == @current_player.colour
-		end
-	end
+  end
+
+  def clear_en_passant
+    Pawn.all.each do |pawn|
+      pawn.is_en_passant_capturable = false if pawn.colour == @current_player.colour
+    end
+  end
 
   def game_over
     @board.to_s
@@ -118,11 +144,12 @@ class Player
 end
 
 class Board
-  attr_reader :squares
+  attr_reader :squares, :kings
   attr_writer :taken_pieces
   def initialize
     @squares = create_board
     @taken_pieces = []
+    @kings = { black: nil, white: nil }
   end
 
   def create_board
@@ -166,7 +193,7 @@ class Board
     @squares.each do |square|
       next unless square.hostile?(player_colour)
       return true if square.piece.valid_moves.any? do |target|
-        target.friendly?(player_colour) and target.piece&.class == King
+        target.friendly?(player_colour) && (target.piece == @kings[player_colour])
       end
     end
     false
@@ -192,6 +219,28 @@ class Board
     self_check
   end
 
+  def can_castle?(king, rook, moves)
+    return false if king.has_moved? || rook&.has_moved?
+
+    moves.none? do |move|
+      square = king.current_square.get_relative(*move)
+      square.occupied? or move_would_put_self_in_check?(king, square)
+    end
+  end
+
+  def castle!(king, rook, side)
+    y = king.current_square.y
+    if side == :kingside
+      new_king_position = find_square(7, y)
+      new_rook_position = find_square(6, y)
+    elsif side == :queenside
+      new_king_position = find_square(3, y)
+      new_rook_position = find_square(4, y)
+    end
+    king.move_to(new_king_position)
+    rook.move_to(new_rook_position)
+  end
+
   private
 
   def get_back_line_piece(colour, square)
@@ -199,13 +248,14 @@ class Board
     when 1, 8
       Rook.new(colour, square)
     when 2, 7
-      Knight.new(colour, square)
+      # Knight.new(colour, square)
     when 3, 6
-      Bishop.new(colour, square)
+      # Bishop.new(colour, square)
     when 4
-      Queen.new(colour, square)
+      # Queen.new(colour, square)
     else
-      King.new(colour, square)
+      @kings[colour] = King.new(colour, square)
+      @kings[colour]
     end
   end
 
@@ -253,25 +303,25 @@ class Square
   def take(attacker)
     @board.remove_piece(@piece) if occupied?
     @piece = attacker
-	end
-	
-	def take_en_passant(attacker)
-		@piece = attacker
-		if attacker.colour == :black
-			get_relative(0, 1).piece = nil
-		else
-			get_relative(0, -1).piece = nil
-		end
-	end
+  end
+
+  def take_en_passant(attacker)
+    @piece = attacker
+    if attacker.colour == :black
+      get_relative(0, 1).piece = nil
+    else
+      get_relative(0, -1).piece = nil
+    end
+  end
 end
 
 class Piece
-	attr_reader :token, :colour, :current_square
+  attr_reader :token, :colour, :current_square
   def initialize(colour, square)
     @straight_moves = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     @diagonal_moves = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
     @colour = colour
-		@current_square = square
+    @current_square = square
   end
 
   def move_to(target)
@@ -288,7 +338,7 @@ class Piece
     moves = []
     @moveset.each do |move|
       temp = @current_square.get_relative(*move)
-      until temp.nil? or temp.friendly?(@colour)
+      until temp.nil? || temp.friendly?(@colour)
         moves << temp
         break if temp.occupied?
 
@@ -296,34 +346,43 @@ class Piece
       end
     end
     moves
-	end
-	
-	private
+  end
 
-	def valid_moves_restricted
-		moves = []
+  private
+
+  def valid_moves_restricted
+    moves = []
     @moveset.each do |move|
       square = @current_square.get_relative(*move)
-      moves << square unless square.nil? or square.friendly?(@colour)
+      moves << square unless square.nil? || square.friendly?(@colour)
     end
-		moves
-	end
+    moves
+  end
 end
 
 class King < Piece
+  attr_reader :castle_moves
   def initialize(colour, square)
     super
     @moveset = @diagonal_moves + @straight_moves
+    @castle_moves = { queenside: [[-1, 0], [-2, 0]], kingside: [[1, 0], [2, 0]] }
     @restricted_move = true
     @token = colour == :black ? "|\u265A" : "|\u2654"
-	end
-	
-	def valid_moves
-		valid_moves_restricted
-	end
+    @moved = false
+  end
 
-	def is_castling
-	end
+  def move_to(target)
+    @moved = true
+    super
+  end
+
+  def valid_moves
+    valid_moves_restricted
+  end
+
+  def has_moved?
+    @moved
+  end
 end
 
 class Queen < Piece
@@ -341,6 +400,16 @@ class Rook < Piece
     @moveset = @straight_moves
     @restricted_move = false
     @token = colour == :black ? "|\u265C" : "|\u2656"
+    @moved = false
+  end
+
+  def move_to(target)
+    @moved = true
+    super
+  end
+
+  def has_moved?
+    @moved
   end
 end
 
@@ -359,25 +428,25 @@ class Knight < Piece
     @moveset = [[2, -1], [2, 1], [-2, -1], [-2, 1], [1, 2], [1, -2], [-1, -2], [-1, 2]]
     @restricted_move = true
     @token = colour == :black ? "|\u265E" : "|\u2658"
-	end
-	
-	def valid_moves
-		valid_moves_restricted
+  end
+
+  def valid_moves
+    valid_moves_restricted
   end
 end
 
 class Pawn < Piece
-	@@instances = []
-	attr_accessor :is_en_passant_capturable
+  @@instances = []
+  attr_accessor :is_en_passant_capturable
   def initialize(colour, square)
     super
     @moveset = colour == :black ? [[0, -1], [0, -2]] : [[0, 1], [0, 2]]
-		@take_moves = colour == :black ? [[-1, -1], [1, -1]] : [[1, 1], [-1, 1]]
-		@en_passant_positions = [[-1, 0], [1, 0]]
-		@is_en_passant_capturable = false
-		@token = colour == :black ? "|\u265F" : "|\u2659"
-		@promotion_row = colour == :black ? 1 : 8
-		@@instances << self
+    @take_moves = colour == :black ? [[-1, -1], [1, -1]] : [[1, 1], [-1, 1]]
+    @en_passant_positions = [[-1, 0], [1, 0]]
+    @is_en_passant_capturable = false
+    @token = colour == :black ? "|\u265F" : "|\u2659"
+    @promotion_row = colour == :black ? 1 : 8
+    @@instances << self
   end
 
   def valid_moves
@@ -388,60 +457,59 @@ class Pawn < Piece
     end
     @take_moves.each do |move|
       square = @current_square.get_relative(*move)
-      moves << square if square&.hostile?(@colour) or can_move_en_passant(square)
-		end
+      moves << square if square&.hostile?(@colour) || can_move_en_passant(square)
+    end
     moves
-	end
+  end
 
-	
-	def move_to(target)
-		@moveset = [@moveset[0]]
-		if can_move_en_passant(target)
-			target.take_en_passant(self)
-			@current_square.piece = nil
-			@current_square = target
-		else
-			@is_en_passant_capturable = (target.y - @current_square.y).abs == 2
-			super
-			promote! if current_square.y == @promotion_row
-		end
-	end
-	
-	def self.all
-		@@instances
-	end
+  def move_to(target)
+    @moveset = [@moveset[0]]
+    if can_move_en_passant(target)
+      target.take_en_passant(self)
+      @current_square.piece = nil
+      @current_square = target
+    else
+      @is_en_passant_capturable = (target.y - @current_square.y).abs == 2
+      super
+      promote! if current_square.y == @promotion_row
+    end
+  end
 
-	private
+  def self.all
+    @@instances
+  end
 
-	def promote!
-		puts 'Promotion achieved! Choose a piece to replace your pawn'
-		choice = gets.chomp
-		piece = get_promotion_piece(choice)
-		@current_square.piece = piece
-	end
+  private
 
-	def get_promotion_piece(choice)
-		case choice.upcase[0]
-		when 'K'
-			Knight.new(@colour, @current_square)
-		when 'B'
-			Bishop.new(@colour, @current_square)
-		when 'R'
-			Rook.new(@colour, @current_square)
-		else
-			Queen.new(@colour, @current_square)
-		end
-	end
+  def promote!
+    puts 'Promotion achieved! Choose a piece to replace your pawn'
+    choice = gets.chomp
+    piece = get_promotion_piece(choice)
+    @current_square.piece = piece
+  end
 
-	def can_move_en_passant(square)
-		if @colour == :black
-			return square&.get_relative(0, 1)&.piece&.is_en_passant_capturable
-		else
-			return square&.get_relative(0, -1)&.piece&.is_en_passant_capturable
-		end
-	rescue
-		return false
-	end
+  def get_promotion_piece(choice)
+    case choice.upcase[0]
+    when 'K'
+      Knight.new(@colour, @current_square)
+    when 'B'
+      Bishop.new(@colour, @current_square)
+    when 'R'
+      Rook.new(@colour, @current_square)
+    else
+      Queen.new(@colour, @current_square)
+    end
+  end
+
+  def can_move_en_passant(square)
+    if @colour == :black
+      square&.get_relative(0, 1)&.piece&.is_en_passant_capturable
+    else
+      square&.get_relative(0, -1)&.piece&.is_en_passant_capturable
+    end
+  rescue StandardError
+    false
+  end
 end
 
 game = Game.new
