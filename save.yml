@@ -777,50 +777,11 @@ board: &1 !ruby/object:Board
     y: 3
     board: *1
     piece: 
-  - &38 !ruby/object:Square
+  - !ruby/object:Square
     x: 3
     y: 3
     board: *1
-    piece: !ruby/object:Knight
-      straight_moves:
-      - - 0
-        - 1
-      - - 1
-        - 0
-      - - 0
-        - -1
-      - - -1
-        - 0
-      diagonal_moves:
-      - - 1
-        - 1
-      - - -1
-        - -1
-      - - -1
-        - 1
-      - - 1
-        - -1
-      colour: :white
-      current_square: *38
-      moveset:
-      - - 2
-        - -1
-      - - 2
-        - 1
-      - - -2
-        - -1
-      - - -2
-        - 1
-      - - 1
-        - 2
-      - - 1
-        - -2
-      - - -1
-        - -2
-      - - -1
-        - 2
-      restricted_move: true
-      token: "|♘"
+    piece: 
   - !ruby/object:Square
     x: 4
     y: 3
@@ -846,8 +807,51 @@ board: &1 !ruby/object:Board
     y: 3
     board: *1
     piece: 
-  - &39 !ruby/object:Square
+  - &38 !ruby/object:Square
     x: 1
+    y: 2
+    board: *1
+    piece: !ruby/object:Pawn
+      straight_moves:
+      - - 0
+        - 1
+      - - 1
+        - 0
+      - - 0
+        - -1
+      - - -1
+        - 0
+      diagonal_moves:
+      - - 1
+        - 1
+      - - -1
+        - -1
+      - - -1
+        - 1
+      - - 1
+        - -1
+      colour: :white
+      current_square: *38
+      moveset:
+      - - 0
+        - 1
+      - - 0
+        - 2
+      take_moves:
+      - - 1
+        - 1
+      - - -1
+        - 1
+      en_passant_positions:
+      - - -1
+        - 0
+      - - 1
+        - 0
+      is_en_passant_capturable: false
+      token: "|♙"
+      promotion_row: 8
+  - &39 !ruby/object:Square
+    x: 2
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -890,7 +894,7 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &40 !ruby/object:Square
-    x: 2
+    x: 3
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -933,7 +937,7 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &41 !ruby/object:Square
-    x: 3
+    x: 4
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -976,7 +980,7 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &42 !ruby/object:Square
-    x: 4
+    x: 5
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -1019,7 +1023,7 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &43 !ruby/object:Square
-    x: 5
+    x: 6
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -1062,7 +1066,7 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &44 !ruby/object:Square
-    x: 6
+    x: 7
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -1105,7 +1109,7 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &45 !ruby/object:Square
-    x: 7
+    x: 8
     y: 2
     board: *1
     piece: !ruby/object:Pawn
@@ -1148,11 +1152,11 @@ board: &1 !ruby/object:Board
       token: "|♙"
       promotion_row: 8
   - &46 !ruby/object:Square
-    x: 8
-    y: 2
+    x: 1
+    y: 1
     board: *1
-    piece: !ruby/object:Pawn
-      straight_moves:
+    piece: !ruby/object:Rook
+      straight_moves: &47
       - - 0
         - 1
       - - 1
@@ -1172,30 +1176,16 @@ board: &1 !ruby/object:Board
         - -1
       colour: :white
       current_square: *46
-      moveset:
-      - - 0
-        - 1
-      - - 0
-        - 2
-      take_moves:
-      - - 1
-        - 1
-      - - -1
-        - 1
-      en_passant_positions:
-      - - -1
-        - 0
-      - - 1
-        - 0
-      is_en_passant_capturable: false
-      token: "|♙"
-      promotion_row: 8
-  - &47 !ruby/object:Square
-    x: 1
+      moveset: *47
+      restricted_move: false
+      token: "|♖"
+      moved: false
+  - &48 !ruby/object:Square
+    x: 2
     y: 1
     board: *1
-    piece: !ruby/object:Rook
-      straight_moves: &48
+    piece: !ruby/object:Knight
+      straight_moves:
       - - 0
         - 1
       - - 1
@@ -1214,16 +1204,26 @@ board: &1 !ruby/object:Board
       - - 1
         - -1
       colour: :white
-      current_square: *47
-      moveset: *48
-      restricted_move: false
-      token: "|♖"
-      moved: false
-  - !ruby/object:Square
-    x: 2
-    y: 1
-    board: *1
-    piece: 
+      current_square: *48
+      moveset:
+      - - 2
+        - -1
+      - - 2
+        - 1
+      - - -2
+        - -1
+      - - -2
+        - 1
+      - - 1
+        - 2
+      - - 1
+        - -2
+      - - -1
+        - -2
+      - - -1
+        - 2
+      restricted_move: true
+      token: "|♘"
   - &49 !ruby/object:Square
     x: 3
     y: 1
@@ -1458,10 +1458,10 @@ board: &1 !ruby/object:Board
     :black: *74
     :white: *75
 players:
-  :white: !ruby/object:Player
+  :white: &76 !ruby/object:Player
     name: p
     colour: :white
-  :black: &76 !ruby/object:Player
+  :black: !ruby/object:Player
     name: j
     colour: :black
 current_player: *76
