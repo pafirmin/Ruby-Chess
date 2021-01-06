@@ -1,7 +1,6 @@
-
 module Prompts
-	def welcome_message
-		<<-HEREDOC
+  def welcome_message
+    <<-HEREDOC
     Welcome to Ruby Chess, written by Paul Firmin. Thanks for playing.
       
     System requirements:
@@ -17,9 +16,9 @@ module Prompts
       To save or load a game, simply enter 'save' or 'load'.
       
       To get started, please enter your names...\n
-		HEREDOC
+    HEREDOC
   end
-  
+
   def show_help
     <<-HEREDOC
     Movement:

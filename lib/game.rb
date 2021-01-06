@@ -1,6 +1,6 @@
 class Game
-	include SaveManager
-	include Prompts
+  include SaveManager
+  include Prompts
 
   def initialize
     @board = Board.new
@@ -9,16 +9,16 @@ class Game
     @checkmate = false
   end
 
-	def run
-		puts welcome_message
+  def run
+    puts welcome_message
     prompt_players
     @board.deploy_pieces
     @current_player = @players[:white]
     turn_loop
     game_over
-	end
-	
-	def turn_loop
+  end
+
+  def turn_loop
     until @checkmate
       clear_en_passant
       puts "#{@current_player}'s turn"
@@ -33,10 +33,11 @@ class Game
 
   def assess_board_for_check
     return unless @board.board_in_check?(@current_player.colour)
+
     if @board.checkmate?(@current_player.colour)
       puts 'CHECKMATE!'
-			@checkmate = true
-		  switch_players
+      @checkmate = true
+      switch_players
     else
       puts 'CHECK!'
     end
@@ -57,11 +58,11 @@ class Game
 
   def choose_square
     loop do
-			choice = gets.chomp
-			if choice.downcase == 'save'
+      choice = gets.chomp
+      if choice.downcase == 'save'
         save_game(self)
         redo
-			elsif choice.downcase == 'load'
+      elsif choice.downcase == 'load'
         load_game
         redo
       elsif choice.downcase == 'help'
@@ -88,14 +89,14 @@ class Game
       rook = @board.find_square(1, king.rank).piece
     end
     moves = king.castle_moves[side]
-		if @board.castle_is_legal?(king, rook, moves)
-			@board.castle!(king, rook, side) 
-			switch_players
-			turn_loop
-		else
-			puts 'Cannot castle right now'
-			turn_loop
-		end
+    if @board.castle_is_legal?(king, rook, moves)
+      @board.castle!(king, rook, side)
+      switch_players
+      turn_loop
+    else
+      puts 'Cannot castle right now'
+      turn_loop
+    end
   end
 
   def attempt_move(piece, target)

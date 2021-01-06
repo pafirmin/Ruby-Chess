@@ -64,8 +64,9 @@ class Pawn < Piece
     end
   end
 
-	def can_move_en_passant(square)
-		return false unless square&.piece&.class == Pawn
+  def can_move_en_passant(square)
+    return false unless square&.piece&.class == Pawn
+
     if @colour == :black
       square.get_relative(0, 1).piece.is_en_passant_capturable
     else

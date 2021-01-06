@@ -5,11 +5,11 @@ class Piece
     @diagonal_moves = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
     @colour = colour
     @current_square = square
-	end
-	
-	def to_s
-		@token
-	end
+  end
+
+  def to_s
+    @token
+  end
 
   def move_to(target)
     target.take(self)

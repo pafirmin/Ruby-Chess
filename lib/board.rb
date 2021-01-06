@@ -1,5 +1,5 @@
 class Board
-	include Display
+  include Display
 
   attr_reader :squares, :kings
   def initialize
