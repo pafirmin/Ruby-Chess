@@ -82,13 +82,13 @@ class Game
     king = @board.kings[@current_player.colour]
     if move == 'O-O'
       side = :kingside
-      rook = @board.find_square(8, king.current_square.y).piece
+      rook = @board.find_square(8, king.rank).piece
     elsif move == 'O-O-O'
       side = :queenside
-      rook = @board.find_square(1, king.current_square.y).piece
+      rook = @board.find_square(1, king.rank).piece
     end
     moves = king.castle_moves[side]
-		if @board.can_castle?(king, rook, moves)
+		if @board.castle_is_legal?(king, rook, moves)
 			@board.castle!(king, rook, side) 
 			switch_players
 			turn_loop
@@ -96,10 +96,6 @@ class Game
 			puts 'Cannot castle right now'
 			turn_loop
 		end
-  end
-
-  def alpha_to_num(letter)
-    letter.upcase.ord - 'A'.ord + 1
   end
 
   def attempt_move(piece, target)
@@ -133,5 +129,9 @@ class Game
     @board.to_s
     puts "#{@current_player} wins!"
     exit
+  end
+
+  def alpha_to_num(letter)
+    letter.upcase.ord - 'A'.ord + 1
   end
 end

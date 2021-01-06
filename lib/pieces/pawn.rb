@@ -32,9 +32,9 @@ class Pawn < Piece
       @current_square.piece = nil
       @current_square = target
     else
-      @is_en_passant_capturable = (target.y - @current_square.y).abs == 2
+      @is_en_passant_capturable = (target.y - rank).abs == 2
       super
-      promote! if current_square.y == @promotion_row
+      promote! if rank == @promotion_row
     end
   end
 

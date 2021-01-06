@@ -6,7 +6,7 @@ module SaveManager
     puts 'Game saved'
 	end
 
-	def load_game
+  def load_game
     game = YAML.load(File.read('save.yml'))
     puts 'Game loaded'
     game.turn_loop

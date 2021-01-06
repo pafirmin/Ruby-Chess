@@ -64,7 +64,7 @@ class Board
     self_check
   end
 
-  def can_castle?(king, rook, moves)
+  def castle_is_legal?(king, rook, moves)
     return false if king.has_moved? || rook&.has_moved?
 
     moves.none? do |move|
@@ -74,7 +74,7 @@ class Board
   end
 
   def castle!(king, rook, side)
-    y = king.current_square.y
+    y = king.rank
     if side == :kingside
       new_king_position = find_square(7, y)
       new_rook_position = find_square(6, y)

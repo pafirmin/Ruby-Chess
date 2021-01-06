@@ -35,6 +35,10 @@ class Piece
     moves
   end
 
+  def rank
+    @current_square.y
+  end
+
   private
 
   def valid_moves_restricted
