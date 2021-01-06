@@ -296,7 +296,18 @@ class Piece
       end
     end
     moves
-  end
+	end
+	
+	private
+
+	def valid_moves_restricted
+		moves = []
+    @moveset.each do |move|
+      square = @current_square.get_relative(*move)
+      moves << square unless square.nil? or square.friendly?(@colour)
+    end
+		moves
+	end
 end
 
 class King < Piece
@@ -305,7 +316,14 @@ class King < Piece
     @moveset = @diagonal_moves + @straight_moves
     @restricted_move = true
     @token = colour == :black ? "|\u265A" : "|\u2654"
-  end
+	end
+	
+	def valid_moves
+		valid_moves_restricted
+	end
+
+	def is_castling
+	end
 end
 
 class Queen < Piece
@@ -343,13 +361,8 @@ class Knight < Piece
     @token = colour == :black ? "|\u265E" : "|\u2658"
 	end
 	
-  def valid_moves
-    moves = []
-    @moveset.each do |move|
-      square = @current_square.get_relative(*move)
-      moves << square unless square.nil? or square.friendly?(@colour)
-    end
-    moves
+	def valid_moves
+		valid_moves_restricted
   end
 end
 
@@ -363,6 +376,7 @@ class Pawn < Piece
 		@en_passant_positions = [[-1, 0], [1, 0]]
 		@is_en_passant_capturable = false
 		@token = colour == :black ? "|\u265F" : "|\u2659"
+		@promotion_row = colour == :black ? 1 : 8
 		@@instances << self
   end
 
@@ -381,6 +395,7 @@ class Pawn < Piece
 
 	
 	def move_to(target)
+		@moveset = [@moveset[0]]
 		if can_move_en_passant(target)
 			target.take_en_passant(self)
 			@current_square.piece = nil
@@ -388,8 +403,8 @@ class Pawn < Piece
 		else
 			@is_en_passant_capturable = (target.y - @current_square.y).abs == 2
 			super
+			promote! if current_square.y == @promotion_row
 		end
-    @moveset = [@moveset[0]]
 	end
 	
 	def self.all
@@ -398,12 +413,34 @@ class Pawn < Piece
 
 	private
 
+	def promote!
+		puts 'Promotion achieved! Choose a piece to replace your pawn'
+		choice = gets.chomp
+		piece = get_promotion_piece(choice)
+		@current_square.piece = piece
+	end
+
+	def get_promotion_piece(choice)
+		case choice.upcase[0]
+		when 'K'
+			Knight.new(@colour, @current_square)
+		when 'B'
+			Bishop.new(@colour, @current_square)
+		when 'R'
+			Rook.new(@colour, @current_square)
+		else
+			Queen.new(@colour, @current_square)
+		end
+	end
+
 	def can_move_en_passant(square)
 		if @colour == :black
 			return square&.get_relative(0, 1)&.piece&.is_en_passant_capturable
 		else
 			return square&.get_relative(0, -1)&.piece&.is_en_passant_capturable
 		end
+	rescue
+		return false
 	end
 end
 
