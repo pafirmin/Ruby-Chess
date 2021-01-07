@@ -33,7 +33,7 @@ class Game
   private
 
   def assess_board_for_check
-    return unless @board.board_in_check?(@current_player.colour)
+    return unless @board.in_check?(@current_player.colour)
 
     if @board.checkmate?(@current_player.colour)
       puts 'CHECKMATE!'
@@ -46,7 +46,7 @@ class Game
 
   def choose_piece
     loop do
-      square = choose_square
+      square = user_input
       if !square.friendly?(@current_player.colour)
         puts 'Please select a valid piece.'
       elsif square.piece.valid_moves.empty?
@@ -59,7 +59,7 @@ class Game
     end
   end
 
-  def choose_square
+  def user_input
     loop do
       choice = gets.chomp
       if choice.downcase == 'save'
@@ -98,21 +98,18 @@ class Game
     moves = king.castle_moves[side]
     if @board.castle_is_legal?(king, rook, moves)
       @board.castle!(king, rook, side)
-      switch_players
-      turn_loop
+      end_turn
     else
       puts 'Cannot castle right now'
-      turn_loop
     end
   end
 
   def attempt_move(piece, target)
-    if @board.move_would_put_self_in_check?(piece, target)
+    piece.toggle_selected
+    if @board.move_would_result_in_check?(piece, target)
       puts 'Cannot put yourself in check'
-      nil
-    elsif piece.can_move_to?(target)
-      piece.move_to(target)
-      piece.toggle_selected
+    elsif piece.can_move_to? target
+      piece.move_to target
       end_turn
     else
       puts 'Invalid move'

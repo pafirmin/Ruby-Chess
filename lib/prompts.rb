@@ -42,11 +42,11 @@ module Prompts
 
   def prompt_for_piece
     puts 'Choose piece to move'
-    piece = choose_piece
+    choose_piece
   end
 
   def prompt_for_target
     puts 'Choose target square'
-    target = choose_square
+    user_input
   end
 end
