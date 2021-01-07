@@ -3,19 +3,15 @@ class Board
 
   attr_reader :squares, :kings
   def initialize
-    @squares = create_board
+    @squares = []
     @taken_pieces = []
     @kings = { black: nil, white: nil }
+    @rotated = false
   end
 
-  def create_board
-    arr = []
-    [*(1..8)].reverse.each do |y|
-      (1..8).each do |x|
-        arr << Square.new(x, y, self)
-      end
-    end
-    arr
+  def set_board
+    generate_squares
+    deploy_pieces
   end
 
   def deploy_pieces
@@ -87,7 +83,29 @@ class Board
     rook.move_to(new_rook_position)
   end
 
+  def rotate_board
+    @rotated = !@rotated
+  end
+
   private
+
+  def generate_squares
+    [*(1..8)].reverse.each do |y|
+      (1..8).each do |x|
+        @squares << Square.new(x, y, self)
+      end
+    end
+  end
+
+  def to_grid
+    @squares.each_slice(8).to_a
+  end
+
+  def to_grid_rotated
+    grid = to_grid
+    2.times { grid = grid.transpose.reverse }
+    grid
+  end
 
   def get_back_line_piece(colour, square)
     case square.x
@@ -101,11 +119,6 @@ class Board
       Queen.new(colour, square)
     else
       @kings[colour] = King.new(colour, square)
-      @kings[colour]
     end
-  end
-
-  def to_grid
-    @squares.each_slice(8).to_a
   end
 end

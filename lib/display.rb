@@ -1,21 +1,29 @@
 module Display
   def to_s
-    rows = to_grid
+    rows = @rotated ? to_grid_rotated : to_grid
     print_taken_pieces(:white)
-    print_letter_row
+    print_file_markers
     rows.each_with_index do |row, i|
-      print [*(1..8)].reverse[i]
+      print rank_markers[i]
       row.each { |square| print square }
-      print " #{[*(1..8)].reverse[i]}\n"
+      print " #{rank_markers[i]}\n"
     end
-    print_letter_row
+    print_file_markers
     print_taken_pieces(:black)
   end
 
-  def print_letter_row
+  def print_file_markers
+    letters = [*('A'..'H')]
+    letters.reverse! if @rotated
     print ' '
-    [*('A'..'H')].each { |pos| print " #{pos}" }
+    letters.each { |letter| print " #{letter}" }
     print "\n"
+  end
+
+  def rank_markers
+    numbers = [*(1..8)]
+    numbers.reverse! unless @rotated
+    numbers
   end
 
   def print_taken_pieces(colour)

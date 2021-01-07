@@ -12,7 +12,7 @@ class Game
   def run
     puts welcome_message
     prompt_players
-    @board.deploy_pieces
+    @board.set_board
     @current_player = @players[:white]
     turn_loop
     game_over
@@ -67,6 +67,7 @@ class Game
         redo
       elsif choice.downcase == 'help'
         puts show_help
+        redo
       elsif choice.upcase!.start_with?('O-O')
         castle_move(choice)
         break
@@ -107,6 +108,7 @@ class Game
       piece.move_to(target)
       switch_players
       assess_board_for_check
+      @board.rotate_board
     else
       puts 'Invalid move'
     end
