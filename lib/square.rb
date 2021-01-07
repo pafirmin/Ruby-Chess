@@ -9,7 +9,11 @@ class Square
   end
 
   def to_s
-    occupied? ? @piece.token : '|_'
+    if occupied?
+       @piece.to_s
+    else 
+       '|_'
+    end
   end
 
   def occupied?

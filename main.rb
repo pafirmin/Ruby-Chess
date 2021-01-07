@@ -12,6 +12,7 @@ require_relative('./lib/square')
 require_relative('./lib/prompts')
 require_relative('./lib/save_manager')
 require_relative('./lib/game')
+require 'colorize'
 
 game = Game.new
 game.run

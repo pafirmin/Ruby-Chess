@@ -9,6 +9,10 @@ class Board
     @rotated = false
   end
 
+  def to_s
+    print_board
+  end
+
   def set_board
     generate_squares
     deploy_pieces
@@ -85,6 +89,7 @@ class Board
 
   def rotate_board
     @rotated = !@rotated
+    to_s
   end
 
   private

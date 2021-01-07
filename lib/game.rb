@@ -26,6 +26,7 @@ class Game
       piece = prompt_for_piece
       target = prompt_for_target
       attempt_move(piece, target)
+      end_turn
     end
   end
 
@@ -68,6 +69,9 @@ class Game
       elsif choice.downcase == 'help'
         puts show_help
         redo
+      elsif choice.downcase == 'flip'
+        @board.rotate_board
+        redo
       elsif choice.upcase!.start_with?('O-O')
         castle_move(choice)
         break
@@ -106,12 +110,14 @@ class Game
       nil
     elsif piece.can_move_to?(target)
       piece.move_to(target)
-      switch_players
-      assess_board_for_check
-      @board.rotate_board
     else
       puts 'Invalid move'
     end
+  end
+
+  def end_turn
+    switch_players
+    assess_board_for_check
   end
 
   def switch_players

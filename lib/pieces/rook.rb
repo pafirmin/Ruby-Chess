@@ -3,7 +3,7 @@ class Rook < Piece
     super
     @moveset = @straight_moves
     @restricted_move = false
-    @token = colour == :black ? "|\u265C" : "|\u2656"
+    @token = "\u265C"
     @moved = false
   end
 

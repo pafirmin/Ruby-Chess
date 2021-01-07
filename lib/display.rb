@@ -1,5 +1,5 @@
 module Display
-  def to_s
+  def print_board
     rows = @rotated ? to_grid_rotated : to_grid
     print_taken_pieces(:white)
     print_file_markers

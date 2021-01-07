@@ -5,7 +5,7 @@ class King < Piece
     @moveset = @diagonal_moves + @straight_moves
     @castle_moves = { queenside: [[-1, 0], [-2, 0]], kingside: [[1, 0], [2, 0]] }
     @restricted_move = true
-    @token = colour == :black ? "|\u265A" : "|\u2654"
+    @token = "\u265A"
     @moved = false
   end
 

@@ -8,7 +8,7 @@ class Piece
   end
 
   def to_s
-    @token
+    @colour == :black ? "|#{@token.light_black}" : "|#{@token.white}"
   end
 
   def move_to(target)

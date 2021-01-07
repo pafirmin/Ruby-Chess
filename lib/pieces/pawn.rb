@@ -7,7 +7,7 @@ class Pawn < Piece
     @take_moves = colour == :black ? [[-1, -1], [1, -1]] : [[1, 1], [-1, 1]]
     @en_passant_positions = [[-1, 0], [1, 0]]
     @is_en_passant_capturable = false
-    @token = colour == :black ? "|\u265F" : "|\u2659"
+    @token = "\u265F"
     @promotion_row = colour == :black ? 1 : 8
     @@instances << self
   end

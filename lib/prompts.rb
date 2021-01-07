@@ -10,8 +10,9 @@ module Prompts
       To move a piece, first select it by entering its coordinates (e.g. 'B1').
       Then, select a valid square to move to (e.g. 'C3'). To castle, enter 'O-O' 
       for a kingside manoeuvre or 'O-O-O' for queenside. Inputs are not 
-      case-sensitive. Depending on your console display, colours may appear
-      to be reversed. Well, they're not. Trust me.
+      case-sensitive.
+
+      To rotate the board, enter 'flip'
 
       To save or load a game, simply enter 'save' or 'load'.
       
@@ -25,6 +26,8 @@ module Prompts
       Select piece: Enter piece coordinate (eg. 'B1').
       Move piece: Enter target square coordinate (e.g. 'C3')
       Castling: 'O-O' for kingside; 'O-O-O' for queenside.
+    Rotate board:
+      Enter 'flip'
     Save or load a game: 
       Enter 'save' or 'load' \n
     HEREDOC
