@@ -10,7 +10,7 @@ class Square
 
   def to_s
     if occupied?
-       @piece.to_s
+       "|#{@piece.to_s}"
     else 
        '|_'
     end

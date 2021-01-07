@@ -17,7 +17,7 @@ module Display
     letters.reverse! if @rotated
     print ' '
     letters.each { |letter| print " #{letter}" }
-    print "\n"
+    print " \n"
   end
 
   def rank_markers

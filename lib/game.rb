@@ -21,9 +21,10 @@ class Game
   def turn_loop
     until @checkmate
       clear_en_passant
-      puts "#{@current_player}'s turn"
       puts @board.to_s
+      puts "#{@current_player}'s turn"
       piece = prompt_for_piece
+      puts @board.to_s
       target = prompt_for_target
       attempt_move(piece, target)
     end
@@ -51,7 +52,9 @@ class Game
       elsif square.piece.valid_moves.empty?
         puts 'Piece has no legal moves.'
       else
-        return square.piece
+        piece = square.piece
+        piece.toggle_selected
+        return piece
       end
     end
   end
@@ -109,6 +112,7 @@ class Game
       nil
     elsif piece.can_move_to?(target)
       piece.move_to(target)
+      piece.toggle_selected
       end_turn
     else
       puts 'Invalid move'

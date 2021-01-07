@@ -1,14 +1,23 @@
 class Piece
-  attr_reader :token, :colour, :current_square
+  attr_reader :colour, :current_square
   def initialize(colour, square)
     @straight_moves = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     @diagonal_moves = [[1, 1], [-1, -1], [-1, 1], [1, -1]]
     @colour = colour
     @current_square = square
+    @selected = false
   end
 
   def to_s
-    @colour == :black ? "|#{@token.light_black}" : "|#{@token.white}"
+    @selected ? token.green : token
+  end
+
+  def toggle_selected
+    @selected = !@selected
+  end
+
+  def token
+    @colour == :black ? "#{@token.light_black}" : "#{@token.white}"
   end
 
   def move_to(target)
