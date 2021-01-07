@@ -26,7 +26,6 @@ class Game
       piece = prompt_for_piece
       target = prompt_for_target
       attempt_move(piece, target)
-      end_turn
     end
   end
 
@@ -110,6 +109,7 @@ class Game
       nil
     elsif piece.can_move_to?(target)
       piece.move_to(target)
+      end_turn
     else
       puts 'Invalid move'
     end

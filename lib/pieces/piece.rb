@@ -45,7 +45,7 @@ class Piece
     moves = []
     @moveset.each do |move|
       square = @current_square.get_relative(*move)
-      moves << square if square&.hostile?(@colour)
+      moves << square unless !square || square&.friendly?(@colour)
     end
     moves
   end
